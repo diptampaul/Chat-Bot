@@ -75,6 +75,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'main',
+    'dashboard',
 ]
 
 MIDDLEWARE = [
@@ -134,7 +136,7 @@ elif env('MAIN_DB') == 'POSTGRES':
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-                'NAME': 'Bonds',  #Name of the DataBase #VGUExamSys
+                'NAME': 'Chats',  #Name of the DataBase #VGUExamSys
                 'USER': 'postgres',
                 'PASSWORD': 'Fyyr1234',
                 'HOST': 'localhost'
