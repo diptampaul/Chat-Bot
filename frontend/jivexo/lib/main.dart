@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'assests/global.dart';
+import 'main/home_screen.dart';
+import 'main/login.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,13 +16,13 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'FinnOne Demo',
+      title: 'Jivexo',
       scaffoldMessengerKey: snackbarKey,
-      home: const Text("Home"),
-      // initialRoute: '/',
-      // routes: {
-      //   '/' : (context) => const HomeScreen(),
-      // },
+      initialRoute: '/',
+      routes: {
+        '/' : (context) => const HomeScreen(),
+        '/sign-in' : (context) => const LoginScreen(),
+      },
     );
   }
 }

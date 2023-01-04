@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'main',
     'dashboard',
+    'whatsapp',
 ]
 
 MIDDLEWARE = [
@@ -212,3 +213,9 @@ EMAIL_USE_TLS = bool(env('EMAIL_USE_TLS'))
 EMAIL_PORT = int(env('EMAIL_PORT'))
 EMAIL_HOST_USER = env('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+
+
+#TWILIO SETTINGS
+TWILIO_ACCOUNT_SID= env("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN = env("TWILIO_AUTH_TOKEN")
+TWILIO_PHONE_NUMBER = env("TWILIO_PHONE_NUMBER")

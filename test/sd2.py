@@ -2,7 +2,7 @@ import torch
 from PIL import Image
 torch.cuda.empty_cache()
 torch_device = "cuda" if torch.cuda.is_available() else "cpu"
-torch_device = "cuda"
+torch_device = "cpu"
 
 from transformers import CLIPTextModel, CLIPTokenizer
 from diffusers import AutoencoderKL, UNet2DConditionModel, PNDMScheduler
@@ -33,7 +33,7 @@ prompt = ["Doremon in the office"]
 height = 512                        # default height of Stable Diffusion
 width = 512                         # default width of Stable Diffusion
 
-num_inference_steps = 14            # Number of denoising steps
+num_inference_steps = 100            # Number of denoising steps
 
 guidance_scale = 100              # Scale for classifier-free guidance
 
