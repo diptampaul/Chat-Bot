@@ -24,6 +24,7 @@ from django.views.static import serve
 
 urlpatterns = [
     path('', include('main.urls')),
+    path('whatsapp/twilio/', include('whatsapp.urls')),
     path('admin/', admin.site.urls),
     
     re_path(r'^media/(?P<path>.*)$', serve,{'document_root': settings.MEDIA_ROOT}), 
