@@ -46,7 +46,9 @@ class SendToWhatsapp(APIView):
         profile_obj = Profile.objects.filter(phone_no = phone_no)
         if profile_obj:
             logger.info("Known User")
-            pass
+            #Check conversation time, if it is within 20 hours, reply normal, else starts with greeting
+            conversation_obj = UserWPConversation.objects.filter(profile = profile_obj).order_by("-created_timestamp")
+
 
         else:
             logger.info("Unknown User")
@@ -56,30 +58,34 @@ class SendToWhatsapp(APIView):
                 UserBufferWPChat.objects.create(phone_no = phone_no, message_id = message_id, message_type = message_type, message_text = message_text, media_link = media_link, message_status = message_status)
 
                 #If asked for email address, verify and create profile
-                last_message = user_buffer_chats[0].message_text
-                if last_message == "Sorry! I've never met you. Next, please provide your email address : ":
-                    if "@" in message_text and "." in message_text:
-                        logger.info("User gave correct email address")
-                        profile_obj = Profile(name=name, email=str(message_text), password =None, is_password_given = False, phone_no = phone_no)
-                        profile_obj.save()
-                        UserTokenBalance(profile = profile_obj, tokens = 500.0)
-
-                        sending_message = f"New Account has been successfully created at *Jahnbi AI - Your personal assistant.* You got 500 tokens. Please go to _https://jahnbi.com_ to claim your free 5000 additional tokens. \n\n Hi {name}! \n\n I am your own knowledge assistant / private wiki *Jahnbi*. You can ask me anything you want, and I will give proper and short answer to each question. I can also create AI art, just ask /ART at any time. \n\n ```Visit website/app to know more about secret commands which can unlock some special feature of Jahnbi. All chats with Jahnbi is end to end encrypted```"
+                if "@" in message_text and "." in message_text:
+                    logger.info("User gave correct email address")
+                    profile_obj = Profile.objects.filter(email=str(message_text))
+                    if profile_obj:
+                        sending_message = f"The email address is already in use. Please visit website/app to add this number with your email address or provide a different email address : "
                         message_id = two_way_message(phone_no, sending_message)
                         UserBufferWPChat.objects.create(phone_no = phone_no, message_id = message_id, message_type = "Text", message_text = sending_message, media_link = None, message_status = "sent")
+                        return JsonResponse({'errorCode': 0, 'message': "Success",}, status=200)
+                    profile_obj = Profile(name=name, email=str(message_text), password =None, is_password_given = False, phone_no = phone_no)
+                    profile_obj.save()
+                    UserTokenBalance(profile = profile_obj, tokens = 500.0)
 
-                        #Move all chats to USERWPCHAT
-                        all_chats = UserBufferWPChat.objects.filter(phone_no = phone_no)
-                        conversation = UserWPConversation(profile_obj)
-                        conversation.save()
-                        for chat in all_chats:
-                            UserWPChat.objects.create(conversation = conversation, message_id = chat.message_id, message_type = chat.message_type, message_text = chat.message_text, media_link = chat.media_link, message_status = chat.message_status)
+                    sending_message = f"New Account has been successfully created at *Jahnbi AI - Your personal assistant.* You got 500 tokens. Please go to _https://jahnbi.com_ to claim your free 5000 additional tokens. \n\n Hi {name}! \n\n I am your own knowledge assistant / private wiki *Jahnbi*. You can ask me anything you want, and I will give proper and short answer to each question. I can also create AI art, just ask /ART at any time. \n\n ```Visit website/app to know more about secret commands which can unlock some special feature of Jahnbi. All chats with Jahnbi is end to end encrypted and removed after 20 hours```"
+                    message_id = two_way_message(phone_no, sending_message)
+                    UserBufferWPChat.objects.create(phone_no = phone_no, message_id = message_id, message_type = "Text", message_text = sending_message, media_link = None, message_status = "sent")
 
-                    else:
-                        logger.info("User gave invalid email address")
-                        sending_message = f"Hmm... Didn't seems like a valid Email \n Please enter a valid email id : "
-                        message_id = two_way_message(phone_no, sending_message)
-                        UserBufferWPChat.objects.create(phone_no = phone_no, message_id = message_id, message_type = "Text", message_text = sending_message, media_link = None, message_status = "sent")
+                    #Move all chats to USERWPCHAT
+                    all_chats = UserBufferWPChat.objects.filter(phone_no = phone_no)
+                    conversation = UserWPConversation(profile_obj)
+                    conversation.save()
+                    for chat in all_chats:
+                        UserWPChat.objects.create(conversation = conversation, message_id = chat.message_id, message_type = chat.message_type, message_text = chat.message_text, media_link = chat.media_link, message_status = chat.message_status)
+
+                else:
+                    logger.info("User gave invalid email address")
+                    sending_message = f"Hmm... Didn't seems like a valid Email \n Please enter a valid email id : "
+                    message_id = two_way_message(phone_no, sending_message)
+                    UserBufferWPChat.objects.create(phone_no = phone_no, message_id = message_id, message_type = "Text", message_text = sending_message, media_link = None, message_status = "sent")
             else:
                 logger.info("First time user")
                 #Ask for email addresses
@@ -90,11 +96,7 @@ class SendToWhatsapp(APIView):
                 UserBufferWPChat.objects.create(phone_no = phone_no, message_id = message_id, message_type = "Text", message_text = sending_message, media_link = None, message_status = "sent")
 
         logger.info(f"{phone_no} received a message {sending_message}")
-        return JsonResponse(
-                {
-                    'errorCode': 0,
-                    'message': "Success",
-                }, status=200)
+        return JsonResponse({'errorCode': 0, 'message': "Success",}, status=200)
 
 class WhatsappCallbackView(APIView):
 
