@@ -5,7 +5,8 @@ class Profile(models.Model):
     user_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
     email = models.EmailField(max_length=100, null=True, blank=True)
-    password = models.CharField(max_length=50)
+    password = models.CharField(max_length=50, null=True)
+    is_password_given = models.BooleanField(default=False)
     phone_no = models.CharField(max_length=20)
     created_timestamp = models.DateTimeField(blank=False, auto_now_add=True)
 

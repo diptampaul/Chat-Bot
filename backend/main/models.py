@@ -16,3 +16,12 @@ class UserWPChat(models.Model):
     media_link = models.TextField(validators=[URLValidator()], blank=True, null=True)
     message_status = models.CharField(max_length=10)  #Sent or received or failed
     created_timestamp = models.DateTimeField(blank=False, auto_now_add=True)
+
+class UserBufferWPChat(models.Model):
+    phone_no = models.CharField(max_length=20)
+    message_id = models.CharField(max_length=100)
+    message_type = models.CharField(max_length=50)
+    message_text = models.TextField(blank=True, null=True)
+    media_link = models.TextField(validators=[URLValidator()], blank=True, null=True)
+    message_status = models.CharField(max_length=10)  #Sent or received or failed
+    created_timestamp = models.DateTimeField(blank=False, auto_now_add=True)

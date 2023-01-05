@@ -1,18 +1,20 @@
 from django.conf import settings
 from twilio.rest import Client 
+import json
 
-def send_one_way_message():
+def send_one_way_message(sender_number, message):
     account_sid = settings.TWILIO_ACCOUNT_SID
     auth_token = settings.TWILIO_AUTH_TOKEN
     client = Client(account_sid, auth_token) 
     
     message = client.messages.create( 
                                 from_=f'whatsapp:{settings.TWILIO_PHONE_NUMBER}',  
-                                body='Your Twilio code is 1238432',      
-                                to='whatsapp:+917699419499' 
+                                body=message,      
+                                to=f'whatsapp:{sender_number}'  
                             ) 
     
-    print(message.sid)
+    response = message.sid
+    print(response)
 
     # Response format
     """
@@ -43,7 +45,7 @@ def send_one_way_message():
     """
 
 
-def two_way_message():
+def two_way_message(sender_number, message):
     #It has 24 hours timeline to make a conversation
     account_sid = settings.TWILIO_ACCOUNT_SID
     auth_token = settings.TWILIO_AUTH_TOKEN
@@ -51,11 +53,12 @@ def two_way_message():
  
     message = client.messages.create( 
                                 from_=f'whatsapp:{settings.TWILIO_PHONE_NUMBER}',  
-                                body='Hello! This is an editable text message. You are free to change it and write whatever you like.',      
-                                to='whatsapp:+917699419499' 
+                                body=message,      
+                                to=f'whatsapp:{sender_number}' 
                             ) 
     
-    print(message.sid)
+    response = message.sid
+    print(response)
 
     #Response
     """
@@ -84,3 +87,5 @@ def two_way_message():
         }
     }
     """
+    response_json = json.dumps(response)
+    return response_json["sid"]
