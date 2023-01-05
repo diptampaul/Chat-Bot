@@ -25,7 +25,8 @@ class SendToWhatsapp(APIView):
         return HttpResponse("Get method not allowed", status=403)
 
     def post(self, request, *args, **kwargs):
-        body = json.dumps(request.data)
+        body = request.data.dict()
+        sending_message = ""
         logger.info(body)
         phone_no = body["From"].split(":")[-1]
         name = body["ProfileName"]
@@ -39,21 +40,26 @@ class SendToWhatsapp(APIView):
             message_type = "Text"
             message_text = body["Body"]
             media_link = None
+        logger.info(f"{phone_no} raised a message {message_text}")
 
         #Check exhistences
         profile_obj = Profile.objects.filter(phone_no = phone_no)
         if profile_obj:
+            logger.info("Known User")
             pass
 
         else:
+            logger.info("Unknown User")
             user_buffer_chats = UserBufferWPChat.objects.filter(phone_no = phone_no).order_by('-created_timestamp')
             if user_buffer_chats:
+                logger.info("User already chatted")
                 UserBufferWPChat.objects.create(phone_no = phone_no, message_id = message_id, message_type = message_type, message_text = message_text, media_link = media_link, message_status = message_status)
 
                 #If asked for email address, verify and create profile
                 last_message = user_buffer_chats[0].message_text
                 if last_message == "Sorry! I've never met you. Next, please provide your email address : ":
                     if "@" in message_text and "." in message_text:
+                        logger.info("User gave correct email address")
                         profile_obj = Profile(name=name, email=str(message_text), password =None, is_password_given = False, phone_no = phone_no)
                         profile_obj.save()
                         UserTokenBalance(profile = profile_obj, tokens = 500.0)
@@ -70,10 +76,12 @@ class SendToWhatsapp(APIView):
                             UserWPChat.objects.create(conversation = conversation, message_id = chat.message_id, message_type = chat.message_type, message_text = chat.message_text, media_link = chat.media_link, message_status = chat.message_status)
 
                     else:
+                        logger.info("User gave invalid email address")
                         sending_message = f"Hmm... Didn't seems like a valid Email \n Please enter a valid email id : "
                         message_id = two_way_message(phone_no, sending_message)
                         UserBufferWPChat.objects.create(phone_no = phone_no, message_id = message_id, message_type = "Text", message_text = sending_message, media_link = None, message_status = "sent")
             else:
+                logger.info("First time user")
                 #Ask for email addresses
                 UserBufferWPChat.objects.create(phone_no = phone_no, message_id = message_id, message_type = message_type, message_text = message_text, media_link = media_link, message_status = message_status)
 
@@ -81,6 +89,7 @@ class SendToWhatsapp(APIView):
                 message_id = two_way_message(phone_no, sending_message)
                 UserBufferWPChat.objects.create(phone_no = phone_no, message_id = message_id, message_type = "Text", message_text = sending_message, media_link = None, message_status = "sent")
 
+        logger.info(f"{phone_no} received a message {sending_message}")
         return JsonResponse(
                 {
                     'errorCode': 0,
@@ -93,7 +102,8 @@ class WhatsappCallbackView(APIView):
         return HttpResponse("Get method not allowed", status=403)
 
     def post(self, request, *args, **kwargs):
-        body = request.POST.get('body')
+        body = request.data.dict()
+        sending_message = ""
         logger.info(body)
         return JsonResponse(
                     {

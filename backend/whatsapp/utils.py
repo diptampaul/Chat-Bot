@@ -49,8 +49,6 @@ def two_way_message(sender_number, message):
     #It has 24 hours timeline to make a conversation
     account_sid = settings.TWILIO_ACCOUNT_SID
     auth_token = settings.TWILIO_AUTH_TOKEN
-    client = Client(account_sid, auth_token) 
- 
     message = client.messages.create( 
                                 from_=f'whatsapp:{settings.TWILIO_PHONE_NUMBER}',  
                                 body=message,      
@@ -58,7 +56,6 @@ def two_way_message(sender_number, message):
                             ) 
     
     response = message.sid
-    print(response)
 
     #Response
     """
@@ -87,5 +84,4 @@ def two_way_message(sender_number, message):
         }
     }
     """
-    response_json = json.dumps(response)
-    return response_json["sid"]
+    return response
