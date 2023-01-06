@@ -1,6 +1,6 @@
 from django.conf import settings
 from twilio.rest import Client 
-import json
+from dashboard.models import *
 
 def send_one_way_message(sender_number, message):
     account_sid = settings.TWILIO_ACCOUNT_SID
@@ -49,6 +49,8 @@ def two_way_message(sender_number, message):
     #It has 24 hours timeline to make a conversation
     account_sid = settings.TWILIO_ACCOUNT_SID
     auth_token = settings.TWILIO_AUTH_TOKEN
+    client = Client(account_sid, auth_token)
+    
     message = client.messages.create( 
                                 from_=f'whatsapp:{settings.TWILIO_PHONE_NUMBER}',  
                                 body=message,      
@@ -85,3 +87,14 @@ def two_way_message(sender_number, message):
     }
     """
     return response
+
+def update_token_balance(profile_obj, message_id, messsage, open_ai_used = True):
+    total_tokens_used = len(messsage)
+    token_converter = EachTokenMap.objects.get(token = 1).whatsapp_character if open_ai_used else EachTokenMap.objects.get(token = 1).other_character
+    total_tokens_used = total_tokens_used * token_converter
+
+    user_token_obj = UserTokenBalance.objects.get(profile = profile_obj)
+    remaining_tokens = user_token_obj.tokens - total_tokens_used
+    user_token_obj.tokens = remaining_tokens
+    user_token_obj.save()
+    TokenUsage.objects.create(profile = profile_obj, token_used = total_tokens_used, remaining_tokens = remaining_tokens, used_paltform = "WhatsApp Chat", message_id = message_id)
