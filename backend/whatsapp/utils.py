@@ -89,12 +89,12 @@ def two_way_message(sender_number, message):
     """
     return response
 
-def update_token_balance(profile_obj, message_id, messsage, open_ai_used = True):
+def update_token_balance(profile_obj, phone_no, message_id, messsage, open_ai_used = True):
     total_tokens_used = len(messsage)
     token_converter = EachTokenMap.objects.get(token = 1).whatsapp_character if open_ai_used else EachTokenMap.objects.get(token = 1).other_character
     total_tokens_used = total_tokens_used * token_converter
 
-    user_token_obj = UserTokenBalance.objects.get(profile = profile_obj)
+    user_token_obj = UserTokenBalance.objects.get(profile__phone_no = phone_no)
     remaining_tokens = user_token_obj.tokens - total_tokens_used
     user_token_obj.tokens = remaining_tokens
     user_token_obj.save()
