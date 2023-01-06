@@ -8,7 +8,6 @@ from rest_framework.views import APIView
 from rest_framework.parsers import FileUploadParser
 import os
 import logging
-import random
 logger = logging.getLogger('django')
 from dashboard.models import *
 from main.models import *
@@ -44,7 +43,7 @@ class SendToWhatsapp(APIView):
         logger.info(f"{phone_no} raised a message {message_text}")
 
         #Check exhistences
-        profile_obj = Profile.objects.filter(phone_no = phone_no)
+        profile_obj = Profile.objects.get(phone_no = phone_no)
         if profile_obj:
             logger.info("Known User")
             #Check conversation time, if it is within 20 hours, reply normal, else starts with greeting
@@ -86,7 +85,8 @@ class SendToWhatsapp(APIView):
                     sending_message = whoami_reponse()
 
                 else:
-                    output = get_ai_answer(message_text)
+                    max_token_per_chat = user_token_obj.max_token_per_chat / 4 if user_token_obj.max_token_per_chat < 600 else user_token_obj.max_token_per_chat / 5 
+                    output = get_ai_answer(message_text, int(max_token_per_chat))
                     sending_message = output["text"]
 
 
@@ -115,9 +115,9 @@ class SendToWhatsapp(APIView):
                         return JsonResponse({'errorCode': 0, 'message': "Success",}, status=200)
                     profile_obj = Profile(name=name, email=str(message_text), password =None, is_password_given = False, phone_no = phone_no)
                     profile_obj.save()
-                    UserTokenBalance.objects.create(profile = profile_obj, tokens = 500.0)
+                    UserTokenBalance.objects.create(profile = profile_obj, tokens = 1000.0)
 
-                    sending_message = f"New Account has been successfully created at *Jahnbi AI - Your personal assistant.* You got 500 tokens for free. Please go to _[URL]_ to claim your free 5000 additional tokens. \n\n Hi {name}! \n\n I am your own knowledge assistant / private wiki *Jahnbi*. You can ask me anything you want, and I will try my best to answer each questions. I can also create AI art, just ask /ART at any time. \n\n ```Visit website/app to know more about secret commands which can unlock some special feature of Jahnbi. All chats with Jahnbi is end to end encrypted and removed after 20 hours```"
+                    sending_message = f"New Account has been successfully created at *Jahnbi AI - Your personal assistant.* You got 1000 tokens for free. Please go to _[URL]_ to claim your free 5000 additional tokens. \n\n Hi {name}! \n\n I am your own knowledge assistant / private wiki *Jahnbi*. You can ask me anything you want, and I will try my best to answer each questions. I can also create AI art, just ask /ART at any time. \n\n ```Visit website/app to know more about secret commands which can unlock some special feature of Jahnbi. All chats with Jahnbi is end to end encrypted and removed after 20 hours```"
                     message_id = two_way_message(phone_no, sending_message)
                     UserBufferWPChat.objects.create(phone_no = phone_no, message_id = message_id, message_type = "Text", message_text = sending_message, media_link = None, message_status = "sent")
 

@@ -14,6 +14,7 @@ class UserTokenBalance(models.Model):
     profile = models.ForeignKey(Profile, to_field='user_id', on_delete=models.CASCADE)
     tokens = models.DecimalField(max_digits=20, decimal_places=7)
     token_threshold = models.DecimalField(max_digits=20, decimal_places=7, default=100.0) #When user sets password the minimum will be 1000
+    max_token_per_chat = models.PositiveIntegerField(default=1000)
 
 class EachTokenMap(models.Model):
     token = models.PositiveIntegerField(default=1)
