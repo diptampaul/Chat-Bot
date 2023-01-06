@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from rest_framework.parsers import FileUploadParser
 import os
 import logging
+import random
 logger = logging.getLogger('django')
 from dashboard.models import *
 from main.models import *
@@ -50,6 +51,7 @@ class SendToWhatsapp(APIView):
             conversation_obj = UserWPConversation.objects.filter(profile__phone_no = phone_no).order_by('-created_timestamp')
             logger.info("Time elapsed till the conversation started : " + (conversation_obj.created_timestamp - timezone.now()).total_seconds())
             if (conversation_obj.created_timestamp - timezone.now()).total_seconds() > 72000:
+                logger.info("New conversation started")
                 sending_message += "```New conversation started... Chats older than 20 hours has been purged```\nHi !! This is Jahnbi AI at your service!! \n\n "
                 conversation_obj = UserWPConversation(profile = profile_obj)
                 conversation_obj.save()
@@ -63,6 +65,7 @@ class SendToWhatsapp(APIView):
             #Check token balance, if below threshold show warning
             user_token_obj = UserTokenBalance.objects.filter(profile = profile_obj)
             if user_token_obj.tokens <= user_token_obj.token_threshold:
+                logger.info("Token balance below threshold")
                 sending_message = f"Seems like you have reached the token threshold. No worries. Buy tokens from _[URL]_ , starting as low as 50 Rs only. "
                 message_id = two_way_message(phone_no, sending_message)
                 UserWPChat.objects.create(conversation = conversation_obj, message_id = message_id, message_type = message_type, message_text = sending_message, media_link = media_link, message_status = "sent")
@@ -71,18 +74,27 @@ class SendToWhatsapp(APIView):
 
             #Load diferent response for image and text messages
             if message_type != "Text":
+                logger.info("Other media types came")
                 sending_message = f"I'm very sorry. I can't interpret visuals that don't have context. Please see my website for all of the hidden commands you may ask me."
                 message_id = two_way_message(phone_no, sending_message)
                 UserWPChat.objects.create(conversation = conversation_obj, message_id = message_id, message_type = message_type, message_text = sending_message, media_link = media_link, message_status = "sent")
                 update_token_balance(profile_obj, message_id, sending_message, False)
+
             else:
-                output = get_ai_answer(message_text)
-                sending_message = output["text"]
+                logger.info("Text message came")
+                if message_text.lower() in ["who are you", "who are you?",  "what is your name", "what is your name?", "tell me about you", "tell me about yourself"]:
+                    sending_message = whoami_reponse()
+
+                else:
+                    output = get_ai_answer(message_text)
+                    sending_message = output["text"]
+
+                    
                 message_id = two_way_message(phone_no, sending_message)
                 UserWPChat.objects.create(conversation = conversation_obj, message_id = message_id, message_type = message_type, message_text = sending_message, media_link = media_link, message_status = "sent")
-                update_token_balance(profile_obj, message_id, sending_message, False)
-                update_token_balance(profile_obj, message_id, message_text, False)
-            
+                update_token_balance(profile_obj, message_id, sending_message, True)
+                update_token_balance(profile_obj, message_id, message_text, True)
+        
 
         else:
             logger.info("Unknown User")
