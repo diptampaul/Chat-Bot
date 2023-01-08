@@ -45,6 +45,20 @@ def send_one_way_message(sender_number, message):
     }
     """
 
+def send_image(sender_number, media_link):
+    account_sid = settings.TWILIO_ACCOUNT_SID
+    auth_token = settings.TWILIO_AUTH_TOKEN
+    client = Client(account_sid, auth_token)
+    
+    message = client.messages.create(
+         media_url=[media_link],
+         from_=f'whatsapp:{settings.TWILIO_PHONE_NUMBER}',
+         to=f'whatsapp:{sender_number}'
+     )
+    
+    response = message.sid
+    return response
+
 
 def two_way_message(sender_number, message):
     #It has 24 hours timeline to make a conversation
@@ -99,6 +113,16 @@ def update_token_balance(profile_obj, phone_no, message_id, messsage, open_ai_us
     user_token_obj.tokens = remaining_tokens
     user_token_obj.save()
     TokenUsage.objects.create(profile = profile_obj, token_used = total_tokens_used, remaining_tokens = remaining_tokens, used_paltform = "WhatsApp Chat", message_id = message_id)
+
+def update_token_balance_for_image(profile_obj, phone_no, message_id, image_cost):
+    total_tokens_used = int(image_cost)
+
+    user_token_obj = UserTokenBalance.objects.get(profile__phone_no = phone_no)
+    remaining_tokens = user_token_obj.tokens - total_tokens_used
+    user_token_obj.tokens = remaining_tokens
+    user_token_obj.save()
+    TokenUsage.objects.create(profile = profile_obj, token_used = total_tokens_used, remaining_tokens = remaining_tokens, used_paltform = "WhatsApp Chat", message_id = message_id)
+
 
 def whoami_reponse():
     return random.choice(["I am your personal assistant. My major role is to aid users in creating human-like language depending on the input supplied to me. I have no personal experiences or sentiments, and I am not a person, but rather a software created to deliver information and answer inquiries to the best of my abilities. Is there anything else you'd want to know?", "I am your personal assistant. My primary role is to aid users in creating human-like writing from the input supplied to me. I have no personal sentiments or experiences, and I am not a person, but rather a software created to deliver information and answer inquiries to the best of my abilities. Is there anything more I can tell you?", "As a language model, I was designed to generate human-like text based on the input provided to me. I do not have personal experiences or feelings and am not a person, but rather a program. I was trained on a dataset of billions of words and can answer questions on a wide range of topics, including but not limited to general knowledge, mathematics, science, history, and more. My primary function is to assist users in generating human-like text, and I do not have the ability to browse the internet or access new information beyond what I was trained on. Is there anything else you would like to know?", "I was created as a language model to generate human-like prose based on the input given to me. I have no personal experiences or sentiments, and I am a software rather than a person. I was trained on a billion-word dataset and can answer questions about a wide range of topics, including but not limited to general knowledge, mathematics, physics, history, and others. My major role is to aid people in producing human-like text, and I am unable to explore the internet or obtain new knowledge beyond what I was taught on. Is there anything more I should know?"])

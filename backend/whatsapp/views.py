@@ -43,8 +43,9 @@ class SendToWhatsapp(APIView):
         logger.info(f"{phone_no} raised a message {message_text}")
 
         #Check exhistences
-        profile_obj = Profile.objects.get(phone_no = phone_no)
+        profile_obj = Profile.objects.filter(phone_no = phone_no)
         if profile_obj:
+            profile_obj = profile_obj[0]
             logger.info("Known User")
             #Check conversation time, if it is within 20 hours, reply normal, else starts with greeting
             conversation_obj = UserWPConversation.objects.filter(profile__phone_no = phone_no).order_by('-created_timestamp')[0]
@@ -74,6 +75,8 @@ class SendToWhatsapp(APIView):
             #Load diferent response for image and text messages
             if message_type != "Text":
                 logger.info("Other media types came")
+                logger.info(message_text)
+                logger.info(media_link)
                 sending_message = f"I'm very sorry. I can't interpret visuals that don't have context. Please see my website for all of the hidden commands you may ask me."
                 message_id = two_way_message(phone_no, sending_message)
                 UserWPChat.objects.create(conversation = conversation_obj, message_id = message_id, message_type = message_type, message_text = sending_message, media_link = media_link, message_status = "sent")
@@ -81,19 +84,65 @@ class SendToWhatsapp(APIView):
 
             else:
                 logger.info("Text message came")
+                max_token_per_chat = user_token_obj.max_token_per_chat / 4 if user_token_obj.max_token_per_chat < 600 else user_token_obj.max_token_per_chat / 5 
+                logger.info(f"Max token per chat {max_token_per_chat}")
+                message_text = message_text.lower()
+
+                #Basic Introduction Message
                 if message_text.lower() in ["who are you", "who are you?",  "what is your name", "what is your name?", "tell me about you", "tell me about yourself"]:
                     sending_message = whoami_reponse()
 
+                #Basic Hi Hello reponse
+
+                #For AI Image check
+                if "/image " in message_text and "image" in message_text:
+                    number_of_images = int(user_token_obj.number_of_image) if user_token_obj.number_of_image <= 10 else int(10) 
+                    #If the remaining token is less than 5000, don't do    
+                    if user_token_obj.tokens <= (4999*number_of_images):
+                        logger.info("AI Image cannot be generated because of insufficient tokens")
+                        sending_message = f"Hey, you don't have enough tokens to generate AI images. Please have atleast 5000 tokens to generate AI images or buy our special package for AI images. Visit :  _[URL]_ to recharge"
+                        message_id = two_way_message(phone_no, sending_message)
+                        UserWPChat.objects.create(conversation = conversation_obj, message_id = message_id, message_type = message_type, message_text = sending_message, media_link = media_link, message_status = "sent")
+                        update_token_balance(profile_obj, phone_no, message_id, sending_message, False)
+                        return JsonResponse({'errorCode': 0, 'message': "Success",}, status=200)
+
+                    update_token_balance(profile_obj, phone_no, message_id, message_text, True)
+                    message_text = message_text.split("/image ")[-1]
+                    image_size = int(user_token_obj.image_size)
+                    logger.info("AI generating AI Image")
+                    image_datas = get_ai_image(message_id = message_id, prompt=message_text, image_size=image_size, number_of_images = number_of_images)
+                    logger.info(image_datas)
+                    for image_data in image_datas:
+                        message_id = send_image(phone_no, image_data["image_url"])
+                        UserWPChat.objects.create(conversation = conversation_obj, message_id = message_id, message_type = message_type, message_text = None, media_link = image_data["image_url"], message_status = "sent")
+                        update_token_balance_for_image(profile_obj, phone_no, message_id, 4000)
+
+                #For other than AI Image
                 else:
-                    max_token_per_chat = user_token_obj.max_token_per_chat / 4 if user_token_obj.max_token_per_chat < 600 else user_token_obj.max_token_per_chat / 5 
-                    output = get_ai_answer(message_text, int(max_token_per_chat))
-                    sending_message = output["text"]
+                    if "/code" in message_text:
+                        pass
+                    if "/setting" in message_text:
+                        pass
+                    if "/help" in message_text:
+                        pass
+                    else:   
+                        logger.info("Ai generating Chat reponse")
+                        if "chat" in message_text and "/chat " in message_text:
+                            message_text = message_text.split("/chat ")[-1]
+                            output = get_ai_answer(message_text, int(max_token_per_chat))
+                            sending_message = output["text"]
+                            update_token_balance(profile_obj, phone_no, message_id, message_text, True)
+                        elif "/" in message_text:
+                            command = message_text.split("/")[-1].split(" ")[0]
+                            sending_message = f"Command {command} is not recognized. Write /help or visit website to learn more about secret commands."
+                        else:
+                            output = get_ai_answer(message_text, int(max_token_per_chat))
+                            sending_message = output["text"]
+                            update_token_balance(profile_obj, phone_no, message_id, message_text, True)
 
-
-                message_id = two_way_message(phone_no, sending_message)
-                UserWPChat.objects.create(conversation = conversation_obj, message_id = message_id, message_type = message_type, message_text = sending_message, media_link = media_link, message_status = "sent")
-                update_token_balance(profile_obj, phone_no, message_id, sending_message, True)
-                update_token_balance(profile_obj, phone_no, message_id, message_text, True)
+                    message_id = two_way_message(phone_no, sending_message)
+                    UserWPChat.objects.create(conversation = conversation_obj, message_id = message_id, message_type = message_type, message_text = sending_message, media_link = media_link, message_status = "sent")
+                    update_token_balance(profile_obj, phone_no, message_id, sending_message, True)
         
 
         else:
@@ -113,6 +162,11 @@ class SendToWhatsapp(APIView):
                         message_id = two_way_message(phone_no, sending_message)
                         UserBufferWPChat.objects.create(phone_no = phone_no, message_id = message_id, message_type = "Text", message_text = sending_message, media_link = None, message_status = "sent")
                         return JsonResponse({'errorCode': 0, 'message': "Success",}, status=200)
+
+                    #generate random avatar
+                    
+
+                    #Create new profile    
                     profile_obj = Profile(name=name, email=str(message_text), password =None, is_password_given = False, phone_no = phone_no)
                     profile_obj.save()
                     UserTokenBalance.objects.create(profile = profile_obj, tokens = 1000.0)

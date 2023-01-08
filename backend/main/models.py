@@ -15,6 +15,17 @@ class OpenAIAnswer(models.Model):
     total_tokens = models.IntegerField()
     created_timestamp = models.DateTimeField(blank=False, auto_now_add=True)
 
+class StableDiffusionImageGeneration(models.Model):
+    id = models.AutoField(primary_key=True)
+    message_id = models.CharField(max_length=100)
+    message_text = models.TextField()
+    number_of_images = models.PositiveIntegerField()
+    image_size = models.PositiveIntegerField()
+    image_url = models.TextField(validators=[URLValidator()], blank=True, null=True)
+    image_name = models.CharField(max_length=50)
+    image_path = models.FileField(upload_to="generated_images/", max_length=150)
+    created_timestamp = models.DateTimeField(blank=False, auto_now_add=True)
+
 
 class UserWPConversation(models.Model):
     profile = models.ForeignKey(Profile, to_field='user_id', on_delete=models.CASCADE)

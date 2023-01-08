@@ -15,6 +15,8 @@ class UserTokenBalance(models.Model):
     tokens = models.DecimalField(max_digits=20, decimal_places=7)
     token_threshold = models.DecimalField(max_digits=20, decimal_places=7, default=100.0) #When user sets password the minimum will be 1000
     max_token_per_chat = models.PositiveIntegerField(default=1000)
+    image_size = models.PositiveIntegerField(default=256) #256.512,1024
+    number_of_image = models.PositiveIntegerField(default=1)
 
 class EachTokenMap(models.Model):
     token = models.PositiveIntegerField(default=1)

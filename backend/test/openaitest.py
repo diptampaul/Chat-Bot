@@ -1,14 +1,14 @@
 import os
 import openai
 
-response = openai.Completion.create(
-  model="text-davinci-003",
-  prompt="Who are you? Are you friendly?",
-  temperature=0.7,
-  max_tokens=256,
-  top_p=1,
-  frequency_penalty=0,
-  presence_penalty=0
+PROMPT = "portrain of a girl inside coffee"
+
+openai.api_key = "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"
+
+response = openai.Image.create(
+    prompt=PROMPT,
+    n=1,
+    size="512x512",
 )
 
-print(response)
+print(response["data"][0]["url"])

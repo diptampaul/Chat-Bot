@@ -223,3 +223,7 @@ TWILIO_PHONE_NUMBER = env("TWILIO_PHONE_NUMBER")
 
 #Open AI
 OPENAI_KEY = env("OPENAI_KEY")
+
+#Stable Diffusion API 
+#https://stablediffusionapi.com/settings/api
+STABLE_DIFFUSION_API_KEY = env("STABLE_DIFFUSION_API_KEY")
