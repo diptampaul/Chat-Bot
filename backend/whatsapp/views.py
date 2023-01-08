@@ -1,6 +1,7 @@
 from django.http.response import HttpResponse, JsonResponse
 from django.utils import timezone
 from rest_framework.views import APIView
+from googletrans import Translator
 import os
 import logging
 logger = logging.getLogger('django')
@@ -20,6 +21,7 @@ class SendToWhatsapp(APIView):
         return HttpResponse("Get method not allowed", status=403)
 
     def post(self, request, *args, **kwargs):
+        translator = Translator(raise_exception=True, service_urls=['translate.googleapis.com'])
         body = request.data.dict()
         sending_message = ""
         logger.info(body)
@@ -114,6 +116,7 @@ class SendToWhatsapp(APIView):
 
                 #For other than AI Image
                 else:
+                    main_language = "en"
                     if "/code" in message_text:
                         message_text = message_text.split("/code ")[-1]
                         message_text = "Write a program on " + message_text
@@ -123,32 +126,65 @@ class SendToWhatsapp(APIView):
 
                     elif "/setting" in message_text or "/settings" in message_text:
                         password = "Secure" if profile_obj.is_password_given() else "Not Set"
-                        sending_message = f"Hi! Below is the details of your profile. To Update any details, kindly visit _[URL]_ or app to change the settings. \n\n ↳ Email : {profile_obj.email} \n ↳ Password : {password} \n ↳ Phone Number : {phone_no} \n\n Token Details - \n ↳ Available Tokens : {user_token_obj.tokens} \n ↳ Maximum Tokens used per Chat : {user_token_obj.max_token_per_chat} \n ↳ Token Threshold : {user_token_obj.token_threshold} \n\n AI Images Details - \n ↳ Number of images to be generated : {user_token_obj.number_of_image} \n ↳ Image Size : {user_token_obj.image_size}x{user_token_obj.image_size}"
+                        sending_message = f"Hi! Below is the details of your profile. To Update any details, kindly visit _[URL]_ or app to change the settings. \n\n ↳ Email : {profile_obj.email} \n ↳ Password : {password} \n ↳ Phone Number : {phone_no} \n\nToken Details - \n ↳ Available Tokens : {user_token_obj.tokens} \n ↳ Maximum Tokens used per Chat : {user_token_obj.max_token_per_chat} \n ↳ Token Threshold : {user_token_obj.token_threshold} \n\nAI Images Details - \n ↳ Number of images to be generated : {user_token_obj.number_of_image} \n ↳ Image Size : {user_token_obj.image_size}x{user_token_obj.image_size}"
+
+                    elif "/languages" in message_text:
+                        sending_message = f"Currently, I support English as the primary language, as well as 10+ Indian languages. I'm still picking up new languages. If I give the incorrect response to a question given in a regional language, please submit a screenshot as feedback from our website. _BTW, I don't support regional languages while using any commands,e.g. /image or /code etc._ \n\nYou can ask questions in any of the languages listed below along with English:\n1. Bengali\n2.Hindi\n3.Gujrati\n4.Kannada\n5.Malayalam\n6.Marathi\n7.Nepali\n8.Odia\n9.Punjabi\n10.Sindhi\n11.Tamil\n12.Telugu\n13.Urdu"
 
                     elif "/help" in message_text:
                         pass
+                    #--------End of Commands--------
+                    
+                    #check if language is english else convert to english
+                    else:
+                        try:
+                            detect = translator.detect(message_text)
+                            detected_language = detect.lang
+                            confidence = detect.confidence
+                            if detected_language != "en":
+                                main_language = detected_language
+                                source_text = message_text
+                                message_text = translator.translate(source_text, dest='en')
+                                logger.info(f"Translated version : {message_text}")
+                                LanguageTranslation.objects.create(message_id = message_id, source_text = source_text, source_language = detected_language, confidence = confidence, destination_text = message_text, destination_language = "en")
 
-                    #Basic introduction
-                    elif message_text.lower() in ["who are you", "who are you?",  "what is your name", "what is your name?", "tell me about you", "tell me about yourself"]:
-                        sending_message = whoami_reponse()
-                    #Basic Hi Hello reponse
-                    elif message_text.lower() in ["hi", "hello", "namaskar", "hola!"]:
-                        sending_message = greetings()
+                        except Exception as e:
+                            logger.info(f"Could not detect language : {e}")
+                            sending_message = f"Sorry, I am not able to understand your language. Please ask */language* to know more about supporting languages"
+                            message_id = two_way_message(phone_no, sending_message)
+                            UserWPChat.objects.create(conversation = conversation_obj, message_id = message_id, message_type = message_type, message_text = sending_message, media_link = media_link, message_status = "sent")
+                            update_token_balance(profile_obj, phone_no, message_id, sending_message, False)
+                            return JsonResponse({'errorCode': 0, 'message': "Success",}, status=200)
 
-                    else:   
-                        logger.info("Ai generating Chat reponse")
-                        if "chat" in message_text and "/chat " in message_text:
-                            message_text = message_text.split("/chat ")[-1]
-                            output = get_ai_answer(message_text, int(max_token_per_chat))
-                            sending_message = output["text"]
-                            update_token_balance(profile_obj, phone_no, message_id, message_text, True)
-                        elif "/" in message_text:
-                            command = message_text.split("/")[-1].split(" ")[0]
-                            sending_message = f"Command {command} is not recognized. Write /help or visit website to learn more about secret commands."
-                        else:
-                            output = get_ai_answer(message_text, int(max_token_per_chat))
-                            sending_message = output["text"]
-                            update_token_balance(profile_obj, phone_no, message_id, message_text, True)
+                        #Basic introduction
+                        if message_text.lower() in ["who are you", "who are you?",  "what is your name", "what is your name?", "tell me about you", "tell me about yourself"]:
+                            sending_message = whoami_reponse()
+                        #Basic Hi Hello reponse
+                        elif message_text.lower() in ["hi", "hello", "namaskar", "hola!"]:
+                            sending_message = greetings()
+
+                        else:   
+                            logger.info("Ai generating Chat reponse")
+                            if "chat" in message_text and "/chat " in message_text:
+                                message_text = message_text.split("/chat ")[-1]
+                                output = get_ai_answer(message_text, int(max_token_per_chat))
+                                sending_message = output["text"]
+                                update_token_balance(profile_obj, phone_no, message_id, message_text, True)
+                            elif "/" in message_text:
+                                command = message_text.split("/")[-1].split(" ")[0]
+                                sending_message = f"Command {command} is not recognized. Write /help or visit website to learn more about secret commands."
+                            else:
+                                output = get_ai_answer(message_text, int(max_token_per_chat))
+                                sending_message = output["text"]
+                                update_token_balance(profile_obj, phone_no, message_id, message_text, True)
+
+                    #Translate back to source language if other than English
+                    if main_language != "en":
+                        source_text = sending_message
+                        sending_message = translator.translate(source_text, dest=main_language)
+                        logger.info(f"Answer : {source_text}")
+                        logger.info(f"Translated version : {sending_message}")
+                        LanguageTranslation.objects.create(message_id = message_id, source_text = source_text, source_language = "en", confidence = 1.0, destination_text = sending_message, destination_language = main_language)
 
                     message_id = two_way_message(phone_no, sending_message)
                     UserWPChat.objects.create(conversation = conversation_obj, message_id = message_id, message_type = message_type, message_text = sending_message, media_link = media_link, message_status = "sent")

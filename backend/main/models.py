@@ -3,6 +3,16 @@ from django.core.validators import URLValidator
 from dashboard.models import Profile
 
 # Create your models here.
+class LanguageTranslation(models.Model):
+    id = models.AutoField(primary_key=True)
+    message_id = models.CharField(max_length=100)
+    source_text = models.TextField(blank=True)
+    source_language = models.CharField(max_length=2)
+    destination_text = models.TextField(blank=True)
+    destination_language = models.CharField(max_length=2)
+    confidence = models.DecimalField(max_digits=2, decimal_places=2)
+    created_timestamp = models.DateTimeField(blank=False, auto_now_add=True)
+
 class OpenAIAnswer(models.Model):
     id = models.AutoField(primary_key=True)
     input_text = models.TextField(blank=True)
