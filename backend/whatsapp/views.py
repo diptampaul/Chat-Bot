@@ -94,7 +94,7 @@ class SendToWhatsapp(APIView):
                     #If the remaining token is less than 4600, don't do    
                     if user_token_obj.tokens <= (4600*number_of_images):
                         logger.info("AI Image cannot be generated because of insufficient tokens")
-                        sending_message = f"Hey, you don't have enough tokens to generate AI images. Please have atleast 5000 tokens to generate AI images or buy our special package for AI images. Visit :  _[URL]_ to recharge"
+                        sending_message = f"Hey, you don't have enough tokens to generate AI images. Please have atleast 5000 tokens to generate single AI images or buy our special package for AI images. And if required change number of images will be generated per chat from your profile. You can ask */settings* to see current settings. Visit :  _[URL]_ to recharge"
                         message_id = two_way_message(phone_no, sending_message)
                         UserWPChat.objects.create(conversation = conversation_obj, message_id = message_id, message_type = message_type, message_text = sending_message, media_link = media_link, message_status = "sent")
                         update_token_balance(profile_obj, phone_no, message_id, sending_message, False)
@@ -120,9 +120,16 @@ class SendToWhatsapp(APIView):
                 #For other than AI Image
                 else:
                     if "/code" in message_text:
-                        pass
-                    elif "/setting" in message_text:
-                        pass
+                        message_text = message_text.split("/code ")[-1]
+                        message_text = "Write a program on " + message_text
+                        output = get_ai_answer(message_text, int(max_token_per_chat))
+                        sending_message = output["text"]
+                        update_token_balance(profile_obj, phone_no, message_id, message_text, True)
+
+                    elif "/setting" in message_text or "/settings" in message_text:
+                        password = "Secure" if profile_obj.is_password_given() else "Not Set"
+                        sending_message = f"Hi! Below is the details of your profile. To Update any details, kindly visit _[URL]_ or app to change the settings. \n\n ↳ Email : {profile_obj.email} \n ↳ Password : {password} \n ↳ Phone Number : {phone_no} \n\n Token Details - \n ↳ Available Tokens : {user_token_obj.tokens} \n ↳ Maximum Tokens used per Chat : {user_token_obj.max_token_per_chat} \n ↳ Token Threshold : {user_token_obj.token_threshold} \n\n AI Images Details - \n ↳ Number of images to be generated : {user_token_obj.number_of_image} \n ↳ Image Size : {user_token_obj.image_size}x{user_token_obj.image_size}"
+
                     elif "/help" in message_text:
                         pass
 
@@ -132,6 +139,7 @@ class SendToWhatsapp(APIView):
                     #Basic Hi Hello reponse
                     elif message_text.lower() in ["hi", "hello", "namaskar", "hola!"]:
                         sending_message = greetings()
+
                     else:   
                         logger.info("Ai generating Chat reponse")
                         if "chat" in message_text and "/chat " in message_text:
