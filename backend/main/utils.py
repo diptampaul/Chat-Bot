@@ -53,7 +53,7 @@ def get_ai_image(message_id, prompt, image_size, number_of_images):
         try:
             payload = json.dumps({
                 "key": str(STABLE_DIFFUSION_API_KEY),
-                "prompt": str(prompt) + " 8K",
+                "prompt": "ultra realistic " + str(prompt) + " 8K, clear picture",
                 "negative_prompt": "((out of frame)), ((extra fingers)), mutated hands, ((poorly drawn hands)), ((poorly drawn face)), (((mutation))), (((deformed))), (((tiling))), ((naked)), ((tile)), ((fleshpile)), ((ugly)), (((abstract))), blurry, ((bad anatomy)), ((bad proportions)), ((extra limbs)), cloned face, (((skinny))), glitchy, ((extra breasts)), ((double torso)), ((extra arms)), ((extra hands)), ((mangled fingers)), ((missing breasts)), (missing lips), ((ugly face)), ((fat)), ((extra legs)), anime",
                 "width": str(image_size),
                 "height": str(image_size),
