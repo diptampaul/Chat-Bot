@@ -91,14 +91,22 @@ class SendToWhatsapp(APIView):
                 #Basic Introduction Message
                 if message_text.lower() in ["who are you", "who are you?",  "what is your name", "what is your name?", "tell me about you", "tell me about yourself"]:
                     sending_message = whoami_reponse()
+                    message_id = two_way_message(phone_no, sending_message)
+                    UserWPChat.objects.create(conversation = conversation_obj, message_id = message_id, message_type = message_type, message_text = sending_message, media_link = media_link, message_status = "sent")
+                    update_token_balance(profile_obj, phone_no, message_id, sending_message, False)
 
                 #Basic Hi Hello reponse
+                elif message_text.lower() in ["hi", "hello", "namaskar", "hola!"]:
+                    sending_message = greetings()
+                    message_id = two_way_message(phone_no, sending_message)
+                    UserWPChat.objects.create(conversation = conversation_obj, message_id = message_id, message_type = message_type, message_text = sending_message, media_link = media_link, message_status = "sent")
+                    update_token_balance(profile_obj, phone_no, message_id, sending_message, False)
 
                 #For AI Image check
-                if "/image " in message_text and "image" in message_text:
+                elif "/image " in message_text and "image" in message_text:
                     number_of_images = int(user_token_obj.number_of_image) if user_token_obj.number_of_image <= 10 else int(10) 
-                    #If the remaining token is less than 5000, don't do    
-                    if user_token_obj.tokens <= (4999*number_of_images):
+                    #If the remaining token is less than 4600, don't do    
+                    if user_token_obj.tokens <= (4600*number_of_images):
                         logger.info("AI Image cannot be generated because of insufficient tokens")
                         sending_message = f"Hey, you don't have enough tokens to generate AI images. Please have atleast 5000 tokens to generate AI images or buy our special package for AI images. Visit :  _[URL]_ to recharge"
                         message_id = two_way_message(phone_no, sending_message)
@@ -109,13 +117,19 @@ class SendToWhatsapp(APIView):
                     update_token_balance(profile_obj, phone_no, message_id, message_text, True)
                     message_text = message_text.split("/image ")[-1]
                     image_size = int(user_token_obj.image_size)
+                    if image_size > 200 and image_size <= 500:
+                        token_used = 3000
+                    elif image_size > 500 and image_size <= 1000:
+                        token_used = 3600
+                    else:
+                        token_used = 4000
                     logger.info("AI generating AI Image")
                     image_datas = get_ai_image(message_id = message_id, prompt=message_text, image_size=image_size, number_of_images = number_of_images)
                     logger.info(image_datas)
                     for image_data in image_datas:
                         message_id = send_image(phone_no, image_data["image_url"])
                         UserWPChat.objects.create(conversation = conversation_obj, message_id = message_id, message_type = message_type, message_text = None, media_link = image_data["image_url"], message_status = "sent")
-                        update_token_balance_for_image(profile_obj, phone_no, message_id, 4000)
+                        update_token_balance_for_image(profile_obj, phone_no, message_id, token_used)
 
                 #For other than AI Image
                 else:
