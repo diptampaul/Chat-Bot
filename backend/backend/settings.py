@@ -79,6 +79,7 @@ INSTALLED_APPS = [
     'main',
     'dashboard',
     'whatsapp',
+    'telegram',
 ]
 
 MIDDLEWARE = [
