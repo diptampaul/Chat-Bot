@@ -83,7 +83,7 @@ def get_ai_image(message_id, prompt, image_size, number_of_images):
     directory = os.path.join(BASE_DIR,"media", "generated_images")
     generated_data = []
     for image_url in image_urls:
-        file_name = f"sd-image-{total_images + 1}.png"
+        file_name = f"sd_image_{total_images + 1}.png"
         total_images += 1
         res = requests.get(image_url, stream = True)
         file_path = os.path.join(directory, file_name)

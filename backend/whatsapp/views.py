@@ -88,22 +88,8 @@ class SendToWhatsapp(APIView):
                 logger.info(f"Max token per chat {max_token_per_chat}")
                 message_text = message_text.lower()
 
-                #Basic Introduction Message
-                if message_text.lower() in ["who are you", "who are you?",  "what is your name", "what is your name?", "tell me about you", "tell me about yourself"]:
-                    sending_message = whoami_reponse()
-                    message_id = two_way_message(phone_no, sending_message)
-                    UserWPChat.objects.create(conversation = conversation_obj, message_id = message_id, message_type = message_type, message_text = sending_message, media_link = media_link, message_status = "sent")
-                    update_token_balance(profile_obj, phone_no, message_id, sending_message, False)
-
-                #Basic Hi Hello reponse
-                elif message_text.lower() in ["hi", "hello", "namaskar", "hola!"]:
-                    sending_message = greetings()
-                    message_id = two_way_message(phone_no, sending_message)
-                    UserWPChat.objects.create(conversation = conversation_obj, message_id = message_id, message_type = message_type, message_text = sending_message, media_link = media_link, message_status = "sent")
-                    update_token_balance(profile_obj, phone_no, message_id, sending_message, False)
-
                 #For AI Image check
-                elif "/image " in message_text and "image" in message_text:
+                if "/image " in message_text and "image" in message_text:
                     number_of_images = int(user_token_obj.number_of_image) if user_token_obj.number_of_image <= 10 else int(10) 
                     #If the remaining token is less than 4600, don't do    
                     if user_token_obj.tokens <= (4600*number_of_images):
@@ -135,10 +121,17 @@ class SendToWhatsapp(APIView):
                 else:
                     if "/code" in message_text:
                         pass
-                    if "/setting" in message_text:
+                    elif "/setting" in message_text:
                         pass
-                    if "/help" in message_text:
+                    elif "/help" in message_text:
                         pass
+
+                    #Basic introduction
+                    elif message_text.lower() in ["who are you", "who are you?",  "what is your name", "what is your name?", "tell me about you", "tell me about yourself"]:
+                        sending_message = whoami_reponse()
+                    #Basic Hi Hello reponse
+                    elif message_text.lower() in ["hi", "hello", "namaskar", "hola!"]:
+                        sending_message = greetings()
                     else:   
                         logger.info("Ai generating Chat reponse")
                         if "chat" in message_text and "/chat " in message_text:
@@ -176,9 +169,6 @@ class SendToWhatsapp(APIView):
                         message_id = two_way_message(phone_no, sending_message)
                         UserBufferWPChat.objects.create(phone_no = phone_no, message_id = message_id, message_type = "Text", message_text = sending_message, media_link = None, message_status = "sent")
                         return JsonResponse({'errorCode': 0, 'message': "Success",}, status=200)
-
-                    #generate random avatar
-                    
 
                     #Create new profile    
                     profile_obj = Profile(name=name, email=str(message_text), password =None, is_password_given = False, phone_no = phone_no)
